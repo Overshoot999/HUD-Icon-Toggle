@@ -14,7 +14,7 @@ namespace HUDIconToggle
     public class HUDIconTogglePlugin : BaseUnityPlugin
     {
         public const string GUID    = "com.hudmodding.nuclearoption.hudicontoggle";
-        public const string VERSION = "1.0.1";
+        public const string VERSION = "1.0.2";
         // CONFIG VERSION — bump this (and delete your .cfg) when keybind layout changes.
         private const int CONFIG_VERSION = 4;
 
