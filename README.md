@@ -6,7 +6,7 @@ I'll preface this by being perfectly clear that ***THIS WASN'T CODED BY ME*** (O
 
 - It *Should* be compatible with other unit mods, like NAVEX for example, i haven't tested every mods out there, but in theory it should, there's a system in place to read modded units and categorise them at runtime,  i left a fallback system for base game units and most commonly used mods like QOL, Aryx's mods etc.
 
-- I made sure that the mod is optimised, i've used a profiler during testing (Both vanilla and modded) and it's stable at a cost of around 0.005ms, without spikes during gameplay.
+- I made sure that the mod is optimised, i've used a profiler during testing (Both vanilla and modded) and it's stable at a cost of around 0.025ms, without spikes during gameplay.
 
 - Should be compatible with future game updates, if i understand it correctly (I probably don't) as long as definitions and classes that are used for units don't change, it shouldn't break with updates.
 
