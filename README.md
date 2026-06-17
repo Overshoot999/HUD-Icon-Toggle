@@ -10,7 +10,7 @@ I'll preface this by being perfectly clear that ***THIS WASN'T CODED BY ME*** (O
 
 - Should be compatible with future game updates, if i understand it correctly (I probably don't) as long as definitions and classes that are used for units don't change, it shouldn't break with updates.
 
-- Toggles settings are retained between sessions. (Config Manager is required)
+- Visibility Toggles settings are retained between sessions. (Config Manager is required)
 
 - It works online.
 
