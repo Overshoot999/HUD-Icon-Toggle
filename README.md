@@ -17,7 +17,7 @@ I'll preface this by being perfectly clear that ***THIS WASN'T CODED BY ME*** (O
 - It works online.
 
 **INSTALL** : 
-- Make sure you have BepinEx installed
+- Make sure you have BepinEx installed + ConfigManager
 - Drop the DLL in Nuclear Option\BepInEx\plugins\
 
 That's about it, i initially made this for myself but since i don't intend on maintaining this heavily for too long, i figured i might as well share it.
