@@ -16,7 +16,7 @@ namespace HUDIconToggle
     {
         public const string GUID    = "com.hudmodding.nuclearoption.hudicontoggle";
         public const string VERSION = "1.0.3";
-        // CONFIG VERSION — bump this (and delete your .cfg) when keybind layout changes.
+
 private const int CONFIG_VERSION = 5;
 
         internal static ManualLogSource Log;
@@ -80,61 +80,102 @@ private const int CONFIG_VERSION = 5;
 
         // ── Classification rules (first match wins) ───────────────────────────
 
-        private static readonly (IconCategory cat, string[] kw)[] Rules =
+private static readonly (IconCategory cat, string[] kw)[] Rules =
         {
-            ( IconCategory.Buildings, new[] {
-                "aircraft revetment", "airfield",
-                "ammo dump", "ammo storage", "barracks", "bunker",
-                "command post", "control tower", "emplacement",
-                "enrichment plant", "factory", "fortif", "fuel depot",
-                "fuel storage", "generator", "guard tower", "hangar",
-                "hardened aircraft shelter", "helipad", "large factory",
-                "munitions pallet", "outpost", "pillbox", "radar station",
-                "radar tower", "refinery", "storage tank",
-                "vehicle depot", "vertical factory", "structure" } ),
-
-            ( IconCategory.Missiles, new[] {
-                "aam-", "agm-", "agr-", "air-2", "alm-", "alnd-", "arad-", "atb-",
-                "arm-", "ashm-", "asm", "at-145", "atgm", "atp-", "bomb",
-                "cbo-", "cruise", "demolition bomb", "eyeball", "gbm-", "dt-1600",
-                "glide", "gpo-", "gs25", "guided shell", "hasm-", "irm-", "missile",
-                "mmr-", "nl-98", "pab-", "piledriver", "ram-45", "rocket", "shell", "glr-04",
-                "sam ir", "torpedo", "tusko", "tbm-", "tbm", "vlm-", "warhead", "r6 longsword", "r9 stratolance" } ),
-
             ( IconCategory.Aircraft, new[] {
-                "a-19", "a-19c", "alkyon", "anvil", "attackhelo", "bomber", "cas1",
-                "chicane", "ci-22", "coin", "compass", "cricket",
-                "darkreach", "drone", "ew-25", "ea-25b", "ew1", "f-16m", "f-99",
-                "fastbomber", "fighter", "fighter1", "fs-12", "fs-12v", "fs-20", "fs-20b",
-                "fs-3ex", "fq-106", "heli", "helicopter", "jet", "kestrel", "kr-67", "kr-67a",
-                "longsword", "mc-260", "medusa", "mig-15", "multirole",
-                "quadvtol", "rah-72", "saber", "sah-46", "sfb",
-                "sfb-81", "shrike", "smallfighter", "t/a-30", "t/a-30yh", "ternion",
-                "trainer", "uav", "uf-0", "uh-90", "uh-90k", "ufo", "utilityhelo",
-                "vl-49", "vl-49d","vtol" } ),
+                "a-19", "a-19c", "alkyon", "anvil", "attackhelo",
+                "bomber",
+                "cas1", "chicane", "ci-22", "coin", "compass", "cricket",
+                "darkreach", "drone",
+                "ea-25b", "ew-25", "ew1",
+                "f-99", "f-16m", "fastbomber", "fighter", "fighter1", "fs-12", "fs-12v", "fs-20", "fs-20b", "fs-3ex", "fq-106",
+                "heli", "helicopter",
+                "jet", "kestrel", "kr-67", "kr-67a",
+                "longsword",
+                "mc-260", "medusa", "mig-15", "multirole",
+                "quadvtol",
+                "rah-72",
+                "saber", "sah-46", "sfb", "sfb-81", "shrike", "smallfighter",
+                "t/a-30", "t/a-30yh", "ternion", "trainer",
+                "uav", "uf-0", "uh-90", "uh-90k", "ufo", "utilityhelo",
+                "vl-49", "vl-49d", "vtol" } ),
 
-            ( IconCategory.Naval, new[] {
-                "annex", "argus", "assault carrier", "battleship",
-                "carrier", "corvette", "cruiser", "cursor", "destroyer",
-                "dynamo", "frigate", "hyperion", "landing craft", "otb-",
-                "patrol boat", "shard class", "ship", "submarine",
-                "vessel" } ),
+            ( IconCategory.Buildings, new[] {
+                "aa gun container", "agm-98 launcher container",
+                "airfield", "aircraft revetment",
+                "ammo dump", "ammo storage",
+                "barracks", "bunker",
+                "command post", "control tower",
+                "emplacement", "enrichment plant",
+                "factory", "fortif", "fuel depot", "fuel storage",
+                "generator", "guard tower",
+                "hardened aircraft shelter", "hangar", "helipad",
+                "large factory",
+                "munitions pallet",
+                "outpost",
+                "pillbox",
+                "radar station", "radar tower", "refinery",
+                "storage tank", "structure",
+                "vehicle depot", "vertical factory" } ),
 
             ( IconCategory.Ground, new[] {
-                "aerosentry", "afv", "afv-", "afv6", "apc","apc-", "apm-71", "artillery", "agm-98 launcher container", "aa gun container",
-                "boltstrike", "bs200", "fga-30",
-                "fga-57", "field deployable airpad", "fire control",
-                "flatbed", "frcv-105", "fuel tanker", "hexhound", "horse",
-                "hlt", "hlt-","howitzer", "ifv", "jackknife", "lcv25", "lcv45", "lcv-",
-                "lcv-25", "lcv-45", "launcher container", "linebreaker", "mbt", "mlrs",
-                "mobile air defense", "mortar", "msv", "msv-", "munitions truck",
-                "radar container", "radar truck", "ram45 launcher", "ram45 sam launcher", "ram-45 launcher container", "r9 stratolance sam launcher",
-                "recon truck", "sam", "spaa", "spaag", "spearhead",
-                "stratolance", "slmmr-", "t9k41", "tractor", "type-12", "type-14",
+                "aa gun container", "aerosentry", "afv", "afv-", "afv6", "agm-98 launcher container", "apc", "apc-", "apm-71", "artillery",
+                "boltstrike", "bs200",
+                "field deployable airpad", "fire control", "flatbed", "frcv-105", "fuel tanker",
+                "fga-30", "fga-57",
+                "hexhound", "horse", "hlt", "hlt-", "howitzer",
+                "ifv", "jackknife",
+                "launcher container", "lcv25", "lcv45", "lcv-", "lcv-25", "lcv-45", "linebreaker",
+                "mbt", "mobile air defense", "mlrs", "mortar", "msv", "msv-", "munitions truck",
+                "radar container", "radar truck", "ram-45 launcher container", "ram45 launcher", "ram45 sam launcher", "r9 stratolance sam launcher", "recon truck",
+                "sam", "slmmr-", "spaa", "spaag", "spearhead", "stratolance",
+                "t9k41", "tractor", "type-12", "type-14",
                 "wreck mbt" } ),
+
+            ( IconCategory.Missiles, new[] {
+                "aam-", "agm-", "agr-", "air-2", "alm-", "alnd-", "arad-", "arm-", "ashm-", "asm", "at-145", "atgm", "atp-",
+                "bomb",
+                "cbo-", "cruise",
+                "demolition bomb", "dt-1600",
+                "eyeball",
+                "gbm-", "glide", "glr-04", "gpo-", "guided shell", "gs25",
+                "hasm-",
+                "irm-",
+                "mmr-", "missile",
+                "nl-98",
+                "pab-", "piledriver",
+                "r6 longsword", "r9 stratolance", "ram-45", "rocket",
+                "sam ir", "shell", "tusko",
+                "tbm-", "tbm", "torpedo",
+                "vlm-", "warhead" } ),
+
+            ( IconCategory.Naval, new[] {
+                "annex", "argus", "assault carrier",
+                "battleship",
+                "carrier", "corvette", "cruiser", "cursor",
+                "destroyer", "dynamo",
+                "frigate",
+                "hyperion",
+                "landing craft",
+                "otb-",
+                "patrol boat",
+                "shard class", "ship", "submarine",
+                "vessel" } ),
         };
 
-        private static readonly HashSet<string> Ignored =
+        // OPTIMIZATION: Pre-built keyword lookup for O(1) classification instead of O(n*m)
+        private static readonly Dictionary<string, IconCategory> s_keywordLookup;
+        static HUDIconTogglePlugin()
+        {
+            s_keywordLookup = new Dictionary<string, IconCategory>(128, StringComparer.OrdinalIgnoreCase);
+            foreach (var (cat, kws) in Rules)
+            {
+                foreach (var kw in kws)
+                    s_keywordLookup[kw] = cat;
+            }
+        }
+
+private static readonly HashSet<string> Ignored =
             new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             { "targetArrow", "targetText", "TargetCode",
               "objectivePointer", "ObjectiveInfo" };
@@ -180,7 +221,7 @@ private void RegisterRewiredActions()
             const string rewiredCategory = "Gameplay";
 
             ExtraInputManager.LoadPendingActions();
-ExtraInputManager.RegisterAction("Toggle All Icons", Rewired.InputActionType.Button, rewiredCategory);
+            ExtraInputManager.RegisterAction("Toggle All Icons", Rewired.InputActionType.Button, rewiredCategory);
             ExtraInputManager.RegisterAction("Toggle All Friendlies Icons", Rewired.InputActionType.Button, rewiredCategory);
             ExtraInputManager.RegisterAction("Toggle All Enemies Icons", Rewired.InputActionType.Button, rewiredCategory);
             ExtraInputManager.RegisterAction("Toggle All Neutrals Icons", Rewired.InputActionType.Button, rewiredCategory);
@@ -629,16 +670,19 @@ ExtraInputManager.RegisterAction("Toggle All Icons", Rewired.InputActionType.But
             return false;
         }
 
-        private IconCategory Classify(string nl)
+private IconCategory Classify(string nl)
         {
             // Primary: type-map lookup. Strip the [NetID] suffix spawned icons append.
             string stripped = s_netIdSuffix.Replace(nl, "").Trim();
             if (_typeMap.TryGetValue(stripped, out var mapped)) return mapped;
 
-            // Fallback: keyword rules for mods using non-standard definition types.
-            foreach (var (cat, kws) in Rules)
-                foreach (var kw in kws)
-                    if (nl.Contains(kw)) return cat;
+            // OPTIMIZATION: O(1) keyword lookup instead of O(n*m) loop
+            // Try substring match - iterate through known keywords and check if name contains them
+            foreach (var kvp in s_keywordLookup)
+            {
+                if (nl.Contains(kvp.Key))
+                    return kvp.Value;
+            }
 
             return IconCategory.Other;
         }
@@ -823,7 +867,7 @@ ExtraInputManager.RegisterAction("Toggle All Icons", Rewired.InputActionType.But
         }
     }
 
-    public enum IconCategory { Missiles, Buildings, Aircraft, Naval, Ground, Other }
+public enum IconCategory { Aircraft, Buildings, Ground, Missiles, Naval, Other }
     public enum IconFaction   { Friendly, Enemy, Neutral }
 
     // ── ConfigurationManagerAttributes stub ───────────────────────────────────

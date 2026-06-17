@@ -29,13 +29,13 @@ namespace HUDIconToggle
 
         private static string ConfigPath => Path.Combine(Path.GetDirectoryName(typeof(ExtraInputManager).Assembly.Location) ?? "", "ExtraInputActions.json");
 
-        public static void RegisterAction(string actionName, InputActionType type, string category = null)
+public static void RegisterAction(string actionName, InputActionType type, string category = null)
         {
             if (PendingActions.Exists(a => a.Name == actionName))
                 return;
 
             PendingActions.Add(new ModInputAction(actionName, type, category));
-            SavePendingActions();
+            // Save is batched - call SavePendingActions() explicitly when needed
         }
 
         public static void LoadPendingActions()
