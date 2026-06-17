@@ -12,6 +12,8 @@ I'll preface this by being perfectly clear that ***THIS WASN'T CODED BY ME*** (O
 
 - Visibility Toggles settings are retained between sessions. (Config Manager is required)
 
+- Features pop-up messages with configurable position and fade out duration.
+
 - It works online.
 
 That's about it, i initially made this for myself but since i don't intend on maintaining this heavily for too long, i figured i might as well share it.
