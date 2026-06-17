@@ -12,10 +12,10 @@ using Rewired;
 namespace HUDIconToggle
 {
     [BepInPlugin(GUID, "HUD Icon Toggle", VERSION)]
-    public class HUDIconTogglePlugin : BaseUnityPlugin
+public class HUDIconTogglePlugin : BaseUnityPlugin
     {
         public const string GUID    = "com.hudmodding.nuclearoption.hudicontoggle";
-        public const string VERSION = "1.0.3";
+        public const string VERSION = "1.0.4";
 
 private const int CONFIG_VERSION = 5;
 
@@ -35,9 +35,20 @@ private const int CONFIG_VERSION = 5;
         private ConfigEntry<bool>[]   _factionVisCfg; // [faction]
         private ConfigEntry<bool>[,]  _catVisCfg;      // [faction, category]
 
-        // Guards against re-entrant Apply calls while we're updating config
+// Guards against re-entrant Apply calls while we're updating config
         // entries in bulk (e.g. HandleMasterToggle writing 21 entries at once).
         private bool _suppressConfigCallback;
+
+        // ── Notification config ─────────────────────────────────────────────────
+        private ConfigEntry<bool>   _notifEnabled;
+        private ConfigEntry<float>    _notifX;
+        private ConfigEntry<float>    _notifY;
+        private ConfigEntry<float>   _notifDuration;
+
+        // Notification state
+        private GameObject _notifPanel;
+        private Text      _notifText;
+        private float     _notifTimer;
 
         // ── Visibility state ──────────────────────────────────────────────────
         //
@@ -303,9 +314,42 @@ private void RegisterRewiredActions()
                 }
             }
 
-            // React to in-menu checkbox changes (and to our own writes below).
+// React to in-menu checkbox changes (and to our own writes below).
             foreach (var e in _factionVisCfg) e.SettingChanged += OnVisibilityConfigChanged;
             foreach (var e in _catVisCfg)     e.SettingChanged += OnVisibilityConfigChanged;
+
+            // ── Notification Config ─────────────────────────────────────────────────
+            _notifEnabled = Config.Bind(
+                "Notifications",
+                "Enabled",
+                true,
+                new ConfigDescription(
+                    "Show popup notifications when toggling icons.",
+                    null, new ConfigurationManagerAttributes { Order = 99 }));
+
+_notifX = Config.Bind(
+                "Notifications",
+                "PositionX",
+                20f,
+                new ConfigDescription(
+                    "X position of notification text (from left edge).",
+                    null, new ConfigurationManagerAttributes { Order = 98 }));
+
+            _notifY = Config.Bind(
+                "Notifications",
+                "PositionY",
+                100f,
+                new ConfigDescription(
+                    "Y position of notification text (from top edge).",
+                    null, new ConfigurationManagerAttributes { Order = 97 }));
+
+            _notifDuration = Config.Bind(
+                "Notifications",
+                "DisplayDuration",
+                2f,
+                new ConfigDescription(
+                    "How long to show notifications (seconds).",
+                    null, new ConfigurationManagerAttributes { Order = 96 }));
         }
 
         // Fired whenever a visibility checkbox changes, whether from a keybind
@@ -323,11 +367,28 @@ private void RegisterRewiredActions()
         {
             ScanForNewIcons();
 
-            _cleanupTimer -= Time.unscaledDeltaTime;
+_cleanupTimer -= Time.unscaledDeltaTime;
             if (_cleanupTimer <= 0f)
             {
                 PruneDeadEntries();
                 _cleanupTimer = CLEANUP_INTERVAL;
+            }
+
+            // Update notification fade
+            if (_notifTimer > 0f)
+            {
+                _notifTimer -= Time.unscaledDeltaTime;
+                if (_notifPanel != null)
+                {
+                    float alpha = Mathf.Clamp01(_notifTimer / _notifDuration.Value);
+                    var cg = _notifPanel.GetComponent<CanvasGroup>();
+                    if (cg != null) cg.alpha = alpha;
+                }
+                if (_notifTimer <= 0f && _notifPanel != null)
+                {
+                    Destroy(_notifPanel);
+                    _notifPanel = null;
+                }
             }
 
             // Prevent toggle input when in chat
@@ -413,7 +474,8 @@ private void RegisterRewiredActions()
                 _suppressConfigCallback = false;
             }
 
-            ApplyAll();
+ApplyAll();
+            ShowNotification(anythingHidden ? "All Icons: SHOWN" : "All Icons: HIDDEN");
         }
 
         // Faction master: flip show/hide for all icons of that faction;
@@ -437,9 +499,10 @@ private void RegisterRewiredActions()
                 _suppressConfigCallback = false;
             }
 
-            ApplyFactionRows(fac);
+ApplyFactionRows(fac);
             Log.LogDebug($"{fac} (all): {(newVal ? "SHOWN" : "HIDDEN")} " +
                         $"({CountFaction(fac)} icons) — category overrides reset.");
+            ShowNotification($"{fac}: {(newVal ? "SHOWN" : "HIDDEN")}");
         }
 
         // Category key: flip one faction/category cell.
@@ -468,8 +531,9 @@ private void RegisterRewiredActions()
                     _suppressConfigCallback = false;
                 }
 
-                ApplyFactionRows(fac);
+ApplyFactionRows(fac);
                 Log.LogDebug($"[{fac}] {cat}: SHOWN (from hidden) ({CountFactionCategory(fac, cat)} icons)");
+                ShowNotification($"{fac} {cat}: SHOWN");
                 return;
             }
 
@@ -479,6 +543,7 @@ private void RegisterRewiredActions()
 
             Log.LogDebug($"[{fac}] {cat}: {(newVal ? "SHOWN" : "HIDDEN")} " +
                         $"({CountFactionCategory(fac, cat)} icons)");
+            ShowNotification($"{fac} {cat}: {(newVal ? "SHOWN" : "HIDDEN")}");
         }
 
         // ── Cache / scan ──────────────────────────────────────────────────────
@@ -643,8 +708,75 @@ private void RegisterRewiredActions()
             return n;
         }
 
-        private int CountFactionCategory(IconFaction fac, IconCategory cat)
+private int CountFactionCategory(IconFaction fac, IconCategory cat)
             => _grid[(int)fac, (int)cat].Count;
+
+// ── Notification system ────────────────────────────────────────────────────
+
+        private void ShowNotification(string message)
+        {
+            if (!_notifEnabled.Value) return;
+
+            Log.LogDebug($"Showing notification: {message}");
+
+            // Destroy existing notification if any
+            if (_notifPanel != null)
+            {
+                Destroy(_notifPanel);
+                _notifPanel = null;
+            }
+
+            // Find the existing HUD canvas
+            var hudCanvas = GameObject.Find(HUDCANVAS_PATH);
+            if (hudCanvas == null)
+            {
+                Log.LogWarning("ShowNotification: HUDCanvas not found!");
+                return;
+            }
+
+            // Create panel as child of existing HUD canvas
+            _notifPanel = new GameObject("NotifPanel");
+            _notifPanel.transform.SetParent(hudCanvas.transform, false);
+
+            var rt = _notifPanel.AddComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0, 1);
+            rt.anchorMax = new Vector2(0, 1);
+            rt.pivot = new Vector2(0, 1);
+            rt.anchoredPosition = new Vector2(_notifX.Value, -_notifY.Value);
+            rt.sizeDelta = new Vector2(300, 150);
+
+            // Add CanvasGroup for fade
+            var cg = _notifPanel.AddComponent<CanvasGroup>();
+            cg.alpha = 1f;
+
+            // Create text
+            GameObject txtObj = new GameObject("NotifText");
+            txtObj.transform.SetParent(_notifPanel.transform, false);
+
+            var txtRt = txtObj.AddComponent<RectTransform>();
+            txtRt.anchorMin = Vector2.zero;
+            txtRt.anchorMax = Vector2.one;
+            txtRt.offsetMin = Vector2.zero;
+            txtRt.offsetMax = Vector2.zero;
+
+            _notifText = txtObj.AddComponent<Text>();
+            _notifText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            _notifText.fontSize = 20;
+            _notifText.alignment = TextAnchor.UpperLeft;
+            _notifText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            _notifText.verticalOverflow = VerticalWrapMode.Overflow;
+            _notifText.color = Color.white;
+            _notifText.supportRichText = true;
+
+            // Add shadow for readability
+            var shadow = txtObj.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0, 0, 0, 0.8f);
+            shadow.effectDistance = new Vector2(2, -2);
+
+            _notifText.text = message;
+            _notifTimer = _notifDuration.Value;
+            Log.LogDebug($"Notification panel created at position ({_notifX.Value}, {-_notifY.Value})");
+        }
 
         // ── Faction colour detection ──────────────────────────────────────────
 
