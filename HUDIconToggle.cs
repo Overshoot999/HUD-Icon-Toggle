@@ -21,12 +21,7 @@ private const int CONFIG_VERSION = 5;
 
         internal static ManualLogSource Log;
 
-        // ── Config ────────────────────────────────────────────────────────────
-
-//        private ConfigEntry<KeyboardShortcut> _keyDump;
-//        private ConfigEntry<KeyboardShortcut> _keyDumpAllUnits;
-
-
+// ── Config ────────────────────────────────────────────────────────────
 
         // ── Visibility toggles (config-menu mirrors of the keybind state) ──────
         // These are the actual source of truth: keybinds flip these entries,
@@ -174,15 +169,31 @@ private static readonly (IconCategory cat, string[] kw)[] Rules =
                 "vessel" } ),
         };
 
-        // OPTIMIZATION: Pre-built keyword lookup for O(1) classification instead of O(n*m)
+// OPTIMIZATION: Pre-built keyword lookup for O(1) classification instead of O(n*m)
+        // Keywords are sorted by length (longest first) to ensure longer keywords match
+        // before shorter ones (e.g., "factory" matches before "sah-46" in "SAH-46 Factory")
         private static readonly Dictionary<string, IconCategory> s_keywordLookup;
+        private static readonly List<KeyValuePair<string, IconCategory>> s_sortedKeywords;
         static HUDIconTogglePlugin()
         {
             s_keywordLookup = new Dictionary<string, IconCategory>(128, StringComparer.OrdinalIgnoreCase);
+            s_sortedKeywords = new List<KeyValuePair<string, IconCategory>>(128);
+
+            // Sort keywords by length (longest first) to prevent short codes like "sah-46"
+            // from matching before longer terms like "factory"
+            var tempKeywords = new List<(IconCategory cat, string kw)>();
             foreach (var (cat, kws) in Rules)
             {
                 foreach (var kw in kws)
-                    s_keywordLookup[kw] = cat;
+                    tempKeywords.Add((cat, kw));
+            }
+            // Sort by length descending (longest first)
+            tempKeywords.Sort((a, b) => b.kw.Length.CompareTo(a.kw.Length));
+
+            foreach (var (cat, kw) in tempKeywords)
+            {
+                s_keywordLookup[kw] = cat;
+                s_sortedKeywords.Add(new KeyValuePair<string, IconCategory>(kw, cat));
             }
         }
 
@@ -225,9 +236,7 @@ private static readonly HashSet<string> Ignored =
             new Harmony(GUID).PatchAll();
             SceneManager.sceneLoaded += OnSceneLoaded;
 
-            Log.LogInfo($"HUD Icon Toggle v{VERSION} loaded. (config v{CONFIG_VERSION})");
-            // Keybind logging removed: all toggle input is now Rewired/ExtraInputManager.
-            // (Visibility toggles remain in the config menu.)
+Log.LogInfo($"HUD Icon Toggle v{VERSION} loaded. (config v{CONFIG_VERSION})");
         }
 
 private void RegisterRewiredActions()
@@ -503,8 +512,7 @@ ApplyAll();
             }
 
 ApplyFactionRows(fac);
-            Log.LogDebug($"{fac} (all): {(newVal ? "SHOWN" : "HIDDEN")} " +
-                        $"({CountFaction(fac)} icons) — category overrides reset.");
+            Log.LogDebug($"{fac} (all): {(newVal ? "SHOWN" : "HIDDEN")} — category overrides reset.");
             ShowNotification($"{fac}: {(newVal ? "SHOWN" : "HIDDEN")}");
         }
 
@@ -535,17 +543,16 @@ ApplyFactionRows(fac);
                 }
 
 ApplyFactionRows(fac);
-                Log.LogDebug($"[{fac}] {cat}: SHOWN (from hidden) ({CountFactionCategory(fac, cat)} icons)");
+                Log.LogDebug($"[{fac}] {cat}: SHOWN (from hidden)");
                 ShowNotification($"{fac} {cat}: SHOWN");
                 return;
             }
 
-            // Normal case: faction is visible, just toggle the cell.
+// Normal case: faction is visible, just toggle the cell.
             bool newVal = !_catVisCfg[fi, ci].Value;
             _catVisCfg[fi, ci].Value = newVal; // fires OnVisibilityConfigChanged → ApplyAll
 
-            Log.LogDebug($"[{fac}] {cat}: {(newVal ? "SHOWN" : "HIDDEN")} " +
-                        $"({CountFactionCategory(fac, cat)} icons)");
+            Log.LogDebug($"[{fac}] {cat}: {(newVal ? "SHOWN" : "HIDDEN")}");
             ShowNotification($"{fac} {cat}: {(newVal ? "SHOWN" : "HIDDEN")}");
         }
 
@@ -600,7 +607,7 @@ ApplyFactionRows(fac);
             return _iconLayer;
         }
 
-        private void ScanForNewIcons()
+private void ScanForNewIcons()
         {
             var layer = GetIconLayer();
             if (layer == null) return;
@@ -701,18 +708,6 @@ ApplyFactionRows(fac);
             cg.blocksRaycasts = visible;
             cg.interactable   = visible;
         }
-
-        // ── Counters ──────────────────────────────────────────────────────────
-
-        private int CountFaction(IconFaction fac)
-        {
-            int fi = (int)fac, n = 0;
-            for (int ci = 0; ci < 6; ci++) n += _grid[fi, ci].Count;
-            return n;
-        }
-
-private int CountFactionCategory(IconFaction fac, IconCategory cat)
-            => _grid[(int)fac, (int)cat].Count;
 
 // ── Notification system ────────────────────────────────────────────────────
 
@@ -815,9 +810,10 @@ private IconCategory Classify(string nl)
             string stripped = s_netIdSuffix.Replace(nl, "").Trim();
             if (_typeMap.TryGetValue(stripped, out var mapped)) return mapped;
 
-            // OPTIMIZATION: O(1) keyword lookup instead of O(n*m) loop
-            // Try substring match - iterate through known keywords and check if name contains them
-            foreach (var kvp in s_keywordLookup)
+            // Use sorted keyword list for deterministic iteration order.
+            // Longer keywords are checked first to prevent short codes (e.g., "sah-46")
+            // from matching before longer terms (e.g., "factory") in names like "SAH-46 Factory"
+            foreach (var kvp in s_sortedKeywords)
             {
                 if (nl.Contains(kvp.Key))
                     return kvp.Value;
@@ -980,14 +976,7 @@ private IconCategory Classify(string nl)
             return null;
         }
 
-        private void LogKeybinds()
-        {
-            // Keybind logging removed: all toggle input is now Rewired/ExtraInputManager.
-            // Keep this method so existing call-sites don't break.
-            Log.LogDebug($"HUD Icon Toggle v{VERSION} — toggle input via Rewired actions (config checkboxes only for visibility).");
-        }
-
-        private static string GetPath(Transform t)
+private static string GetPath(Transform t)
         {
             var parts = new Stack<string>();
             while (t != null) { parts.Push(t.name); t = t.parent; }
