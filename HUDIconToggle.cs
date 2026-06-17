@@ -15,7 +15,7 @@ namespace HUDIconToggle
 public class HUDIconTogglePlugin : BaseUnityPlugin
     {
         public const string GUID    = "com.hudmodding.nuclearoption.hudicontoggle";
-        public const string VERSION = "1.0.4";
+        public const string VERSION = "1.0.5";
 
 private const int CONFIG_VERSION = 5;
 
@@ -189,7 +189,10 @@ private static readonly (IconCategory cat, string[] kw)[] Rules =
 private static readonly HashSet<string> Ignored =
             new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             { "targetArrow", "targetText", "TargetCode",
-              "objectivePointer", "ObjectiveInfo" };
+              "objectivePointer", "ObjectiveInfo", "hitmarker", "radarWarning" };
+
+// OPTIMIZATION: Combined ignore prefixes for O(1) lookup instead of multiple StartsWith
+        private static readonly string[] IgnorePrefixes = { "hitmarker", "radarWarning" };
 
         // Static — compiled once, reused on every Classify call.
         private static readonly System.Text.RegularExpressions.Regex s_netIdSuffix
@@ -792,13 +795,17 @@ private int CountFactionCategory(IconFaction fac, IconCategory cat)
             return IconFaction.Neutral;
         }
 
-        // ── Classification ────────────────────────────────────────────────────
+// ── Classification ────────────────────────────────────────────────────
 
+        // OPTIMIZATION: Use combined lookup instead of multiple StartsWith calls
         private static bool ShouldIgnore(string name)
         {
             if (Ignored.Contains(name)) return true;
-            if (name.StartsWith("hitmarker",    StringComparison.OrdinalIgnoreCase)) return true;
-            if (name.StartsWith("radarWarning", StringComparison.OrdinalIgnoreCase)) return true;
+            // Check if name starts with any ignored prefix
+            foreach (var prefix in IgnorePrefixes)
+            {
+                if (name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return true;
+            }
             return false;
         }
 
