@@ -26,14 +26,7 @@ namespace HUDIconToggle
 //        private ConfigEntry<KeyboardShortcut> _keyDump;
 //        private ConfigEntry<KeyboardShortcut> _keyDumpAllUnits;
 
-        private ConfigEntry<KeyboardShortcut> _keyMasterToggle;
-        private ConfigEntry<KeyboardShortcut> _keyToggleFriendly;
-        private ConfigEntry<KeyboardShortcut> _keyToggleEnemy;
-        private ConfigEntry<KeyboardShortcut> _keyToggleNeutral;
 
-        // Per-faction category keys: [factionKeyIndex, categoryIndex]
-        //   factionKeyIndex 0 = Friendly, 1 = Enemy, 2 = Neutral
-        private ConfigEntry<KeyboardShortcut>[,] _catKeys;
 
         // ── Visibility toggles (config-menu mirrors of the keybind state) ──────
         // These are the actual source of truth: keybinds flip these entries,
@@ -178,7 +171,8 @@ namespace HUDIconToggle
             SceneManager.sceneLoaded += OnSceneLoaded;
 
             Log.LogInfo($"HUD Icon Toggle v{VERSION} loaded. (config v{CONFIG_VERSION})");
-            LogKeybinds(); // outputs at LogDebug level — silent in normal BepInEx config
+            // Keybind logging removed: all toggle input is now Rewired/ExtraInputManager.
+            // (Visibility toggles remain in the config menu.)
         }
 
         private void RegisterRewiredActions()
@@ -217,99 +211,36 @@ namespace HUDIconToggle
             _factionVisCfg = new ConfigEntry<bool>[3];
             _catVisCfg     = new ConfigEntry<bool>[3, 6];
 
-            // ── Debug ─────────────────────────────────────────────────────────
-//         _keyDump = Config.Bind(
-//               "Debug",
-//                "Dump Icon Layer",
-//                new KeyboardShortcut(KeyCode.F1, KeyCode.RightShift),
-//                "Dumps all IconLayer children and current visibility state to the BepInEx log.");
-
-//            _keyDumpAllUnits = Config.Bind(
-//                "Debug",
-//                "Dump All Unit Definitions",
-//               new KeyboardShortcut(KeyCode.F2, KeyCode.RightShift),
-//                "Dumps the display name of every unit/building type the game has loaded, " +
-//                "regardless of whether it's currently spawned. Can be used from the main menu.");
-
-            // ── Master Toggles ────────────────────────────────────────────────
-            _keyMasterToggle = Config.Bind(
-                "Master Toggles",
-                "Toggle All Icons",
-                new KeyboardShortcut(KeyCode.Alpha0, KeyCode.Backspace),
-                new ConfigDescription(
-                    "Hide every HUD icon at once. Press again to restore all. " +
-                    "After hiding all, any per-faction or per-category key will work immediately.",
-                    null, new ConfigurationManagerAttributes { Order = 100 }));
-
-            _keyToggleFriendly = Config.Bind(
-                "Master Toggles",
-                "Toggle All Friendlies",
-                new KeyboardShortcut(KeyCode.Alpha0, KeyCode.RightShift),
-                new ConfigDescription(
-                    "Show / hide all friendly icons. Resets per-category overrides for friendlies.",
-                    null, new ConfigurationManagerAttributes { Order = 90 }));
-
+            // ── Master Toggles (checkbox state only) ─────────────────────────
             _factionVisCfg[(int)IconFaction.Friendly] = Config.Bind(
                 "Master Toggles",
                 "Friendlies Visible",
                 true,
                 new ConfigDescription(
-                    "Current visibility state for all friendly icons. Mirrors 'Toggle All Friendlies'.",
+                    "Current visibility state for all friendly icons.",
                     null, new ConfigurationManagerAttributes { Order = 89 }));
-
-            _keyToggleEnemy = Config.Bind(
-                "Master Toggles",
-                "Toggle All Enemies",
-                new KeyboardShortcut(KeyCode.Alpha0, KeyCode.LeftShift),
-                new ConfigDescription(
-                    "Show / hide all enemy icons. Resets per-category overrides for enemies.",
-                    null, new ConfigurationManagerAttributes { Order = 80 }));
 
             _factionVisCfg[(int)IconFaction.Enemy] = Config.Bind(
                 "Master Toggles",
                 "Enemies Visible",
                 true,
                 new ConfigDescription(
-                    "Current visibility state for all enemy icons. Mirrors 'Toggle All Enemies'.",
+                    "Current visibility state for all enemy icons.",
                     null, new ConfigurationManagerAttributes { Order = 79 }));
-
-            _keyToggleNeutral = Config.Bind(
-                "Master Toggles",
-                "Toggle All Neutrals",
-                new KeyboardShortcut(KeyCode.Alpha0, KeyCode.RightControl),
-                new ConfigDescription(
-                    "Show / hide all neutral / uncaptured structure icons. " +
-                    "Resets per-category overrides for neutrals.",
-                    null, new ConfigurationManagerAttributes { Order = 70 }));
 
             _factionVisCfg[(int)IconFaction.Neutral] = Config.Bind(
                 "Master Toggles",
                 "Neutrals Visible",
                 true,
                 new ConfigDescription(
-                    "Current visibility state for all neutral icons. Mirrors 'Toggle All Neutrals'.",
+                    "Current visibility state for all neutral icons.",
                     null, new ConfigurationManagerAttributes { Order = 69 }));
 
-            // ── Per-faction category keys ─────────────────────────────────────
-            // Friendly  → RightShift  + Alpha1–6
-            // Enemy     → LeftShift   + Alpha1–6
-            // Neutral   → RightControl+ Alpha1–6
-            //
-            // Categories map to Alpha keys in IconCategory enum order:
-            //   Alpha1=Missiles  Alpha2=Buildings  Alpha3=Aircraft
-            //   Alpha4=Naval     Alpha5=Ground     Alpha6=Other
+            // ── Per-faction category visibility (checkbox state only) ─────
+            // Categories map to IconCategory enum order:
+            //   Missiles, Buildings, Aircraft, Naval, Ground, Other
 
             string[] sections = { "Friendly Units", "Enemy Units", "Neutral Units" };
-
-            KeyCode[] catAlphas =
-            {
-                KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3,
-                KeyCode.Alpha4, KeyCode.Alpha5, KeyCode.Alpha6,
-            };
-
-            KeyCode[] modifiers = { KeyCode.RightShift, KeyCode.LeftShift, KeyCode.RightControl };
-
-            _catKeys = new ConfigEntry<KeyboardShortcut>[3, 6];
 
             for (int fi = 0; fi < 3; fi++)
             {
@@ -319,22 +250,12 @@ namespace HUDIconToggle
                     IconCategory cat = (IconCategory)ci;
                     int order = (6 - ci) * 10; // higher order = shown first
 
-                    _catKeys[fi, ci] = Config.Bind(
-                        sections[fi],
-                        $"Toggle {cat}",
-                        new KeyboardShortcut(catAlphas[ci], modifiers[fi]),
-                        new ConfigDescription(
-                            $"Show / hide {factionLabel} {cat} icons. " +
-                            $"If the {factionLabel} faction master is hidden, this restores it first.",
-                            null, new ConfigurationManagerAttributes { Order = order }));
-
                     _catVisCfg[fi, ci] = Config.Bind(
                         sections[fi],
                         $"{cat} Visible",
                         true,
                         new ConfigDescription(
-                            $"Current visibility state for {factionLabel} {cat} icons. " +
-                            $"Mirrors 'Toggle {cat}'.",
+                            $"Current visibility state for {factionLabel} {cat} icons.",
                             null, new ConfigurationManagerAttributes { Order = order - 1 }));
                 }
             }
@@ -377,27 +298,28 @@ namespace HUDIconToggle
                 localPlayer = Rewired.ReInput.players.GetPlayer(0);
             }
 
-            bool CheckToggleDown(ConfigEntry<KeyboardShortcut> shortcut, string actionName)
+            bool CheckToggleDown(string actionName)
             {
-                if (shortcut.Value.IsDown()) return true;
-                if (localPlayer != null && localPlayer.GetButtonDown(actionName)) return true;
-                return false;
+                return localPlayer != null && localPlayer.GetButtonDown(actionName);
             }
 
-            // Keybind checks — early return on first match to avoid double-firing.
-            if (CheckToggleDown(_keyMasterToggle, "ToggleAllIcons"))  { HandleMasterToggle();                     return; }
-            if (CheckToggleDown(_keyToggleFriendly, "ToggleAllFriendlies")){ HandleFactionToggle(IconFaction.Friendly); return; }
-            if (CheckToggleDown(_keyToggleEnemy, "ToggleAllEnemies"))   { HandleFactionToggle(IconFaction.Enemy);    return; }
-            if (CheckToggleDown(_keyToggleNeutral, "ToggleAllNeutrals")) { HandleFactionToggle(IconFaction.Neutral);  return; }
+            // Rewired action checks — early return on first match to avoid double-firing.
+            if (CheckToggleDown("ToggleAllIcons"))                 { HandleMasterToggle(); return; }
+            if (CheckToggleDown("ToggleAllFriendlies"))          { HandleFactionToggle(IconFaction.Friendly); return; }
+            if (CheckToggleDown("ToggleAllEnemies"))             { HandleFactionToggle(IconFaction.Enemy); return; }
+            if (CheckToggleDown("ToggleAllNeutrals"))            { HandleFactionToggle(IconFaction.Neutral); return; }
 
             string[] factions = { "Friendly", "Enemy", "Neutral" };
             for (int fi = 0; fi < 3; fi++)
+            {
                 for (int ci = 0; ci < 6; ci++)
-                    if (CheckToggleDown(_catKeys[fi, ci], $"Toggle{factions[fi]}{(IconCategory)ci}"))
-                    {
-                        HandleCategoryToggle(KeyFactions[fi], (IconCategory)ci);
-                        return;
-                    }
+                {
+                    string actionName = $"Toggle{factions[fi]}{(IconCategory)ci}";
+                    if (!CheckToggleDown(actionName)) continue;
+                    HandleCategoryToggle(KeyFactions[fi], (IconCategory)ci);
+                    return;
+                }
+            }
         }
 
         // ── Toggle handlers ───────────────────────────────────────────────────
@@ -875,20 +797,9 @@ namespace HUDIconToggle
 
         private void LogKeybinds()
         {
-            Log.LogDebug($"HUD Icon Toggle v{VERSION} — keybind layout:");
-//            Log.LogDebug($"  [Debug]   Dump:               {_keyDump.Value}");
-//            Log.LogDebug($"  [Debug]   Dump all units:     {_keyDumpAllUnits.Value}");
-            Log.LogDebug($"  [Master]  All icons:           {_keyMasterToggle.Value}");
-            Log.LogDebug($"  [Master]  All friendlies:      {_keyToggleFriendly.Value} (visible={_factionVisCfg[0].Value})");
-            Log.LogDebug($"  [Master]  All enemies:         {_keyToggleEnemy.Value} (visible={_factionVisCfg[1].Value})");
-            Log.LogDebug($"  [Master]  All neutrals:        {_keyToggleNeutral.Value} (visible={_factionVisCfg[2].Value})");
-            string[] factionLabels = { "Friendly", "Enemy  ", "Neutral" };
-            for (int fi = 0; fi < 3; fi++)
-            {
-                Log.LogDebug($"  [{factionLabels[fi]} category keys]");
-                for (int ci = 0; ci < 6; ci++)
-                    Log.LogDebug($"    {(IconCategory)ci,-12}: {_catKeys[fi, ci].Value}  (visible={_catVisCfg[fi, ci].Value})");
-            }
+            // Keybind logging removed: all toggle input is now Rewired/ExtraInputManager.
+            // Keep this method so existing call-sites don't break.
+            Log.LogDebug($"HUD Icon Toggle v{VERSION} — toggle input via Rewired actions (config checkboxes only for visibility).");
         }
 
         private static string GetPath(Transform t)
