@@ -15,9 +15,9 @@ namespace HUDIconToggle
     public class HUDIconTogglePlugin : BaseUnityPlugin
     {
         public const string GUID    = "com.hudmodding.nuclearoption.hudicontoggle";
-        public const string VERSION = "1.0.2";
+        public const string VERSION = "1.0.3";
         // CONFIG VERSION — bump this (and delete your .cfg) when keybind layout changes.
-        private const int CONFIG_VERSION = 4;
+private const int CONFIG_VERSION = 5;
 
         internal static ManualLogSource Log;
 
@@ -175,13 +175,15 @@ namespace HUDIconToggle
             // (Visibility toggles remain in the config menu.)
         }
 
-        private void RegisterRewiredActions()
+private void RegisterRewiredActions()
         {
+            const string rewiredCategory = "Gameplay";
+
             ExtraInputManager.LoadPendingActions();
-            ExtraInputManager.RegisterAction("ToggleAllIcons", Rewired.InputActionType.Button);
-            ExtraInputManager.RegisterAction("ToggleAllFriendlies", Rewired.InputActionType.Button);
-            ExtraInputManager.RegisterAction("ToggleAllEnemies", Rewired.InputActionType.Button);
-            ExtraInputManager.RegisterAction("ToggleAllNeutrals", Rewired.InputActionType.Button);
+ExtraInputManager.RegisterAction("Toggle All Icons", Rewired.InputActionType.Button, rewiredCategory);
+            ExtraInputManager.RegisterAction("Toggle All Friendlies Icons", Rewired.InputActionType.Button, rewiredCategory);
+            ExtraInputManager.RegisterAction("Toggle All Enemies Icons", Rewired.InputActionType.Button, rewiredCategory);
+            ExtraInputManager.RegisterAction("Toggle All Neutrals Icons", Rewired.InputActionType.Button, rewiredCategory);
             
             string[] factions = { "Friendly", "Enemy", "Neutral" };
             for (int f = 0; f < 3; f++)
@@ -189,7 +191,7 @@ namespace HUDIconToggle
                 for (int c = 0; c < 6; c++)
                 {
                     IconCategory cat = (IconCategory)c;
-                    ExtraInputManager.RegisterAction($"Toggle{factions[f]}{cat}", Rewired.InputActionType.Button);
+                    ExtraInputManager.RegisterAction($"Toggle {factions[f]} {cat} Icons", Rewired.InputActionType.Button, rewiredCategory);
                 }
             }
         }
@@ -303,18 +305,18 @@ namespace HUDIconToggle
                 return localPlayer != null && localPlayer.GetButtonDown(actionName);
             }
 
-            // Rewired action checks — early return on first match to avoid double-firing.
-            if (CheckToggleDown("ToggleAllIcons"))                 { HandleMasterToggle(); return; }
-            if (CheckToggleDown("ToggleAllFriendlies"))          { HandleFactionToggle(IconFaction.Friendly); return; }
-            if (CheckToggleDown("ToggleAllEnemies"))             { HandleFactionToggle(IconFaction.Enemy); return; }
-            if (CheckToggleDown("ToggleAllNeutrals"))            { HandleFactionToggle(IconFaction.Neutral); return; }
+// Rewired action checks — early return on first match to avoid double-firing.
+            if (CheckToggleDown("Toggle All Icons"))                 { HandleMasterToggle(); return; }
+            if (CheckToggleDown("Toggle All Friendlies Icons"))          { HandleFactionToggle(IconFaction.Friendly); return; }
+            if (CheckToggleDown("Toggle All Enemies Icons"))             { HandleFactionToggle(IconFaction.Enemy); return; }
+            if (CheckToggleDown("Toggle All Neutrals Icons"))            { HandleFactionToggle(IconFaction.Neutral); return; }
 
             string[] factions = { "Friendly", "Enemy", "Neutral" };
             for (int fi = 0; fi < 3; fi++)
             {
                 for (int ci = 0; ci < 6; ci++)
                 {
-                    string actionName = $"Toggle{factions[fi]}{(IconCategory)ci}";
+                    string actionName = $"Toggle {factions[fi]} {(IconCategory)ci} Icons";
                     if (!CheckToggleDown(actionName)) continue;
                     HandleCategoryToggle(KeyFactions[fi], (IconCategory)ci);
                     return;

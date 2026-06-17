@@ -73,21 +73,23 @@ namespace HUDIconToggle
                 HUDIconTogglePlugin.Log.LogWarning("RewiredActionInjector: actionCategories list is null!");
                 return;
             }
-            HUDIconTogglePlugin.Log.LogInfo($"RewiredActionInjector: Found categories list with {categories.Count} categories.");
-
-            var debugCategory = categories.FirstOrDefault(c => c.name == "Debug");
-            if (debugCategory == null)
+HUDIconTogglePlugin.Log.LogInfo($"RewiredActionInjector: Found categories list with {categories.Count} categories.");
+            
+            // Log all available category names for reference
+            foreach (var cat in categories)
             {
-                HUDIconTogglePlugin.Log.LogInfo("RewiredActionInjector: 'Debug' category not found, falling back to first category.");
-                debugCategory = categories.FirstOrDefault();
+                HUDIconTogglePlugin.Log.LogInfo($"RewiredActionInjector: Available category: '{cat.name}' (id={cat.id})");
             }
 
-            if (debugCategory == null)
+// Fallback category used if modAction.Category is null or not found.
+            var fallbackCategory = categories.FirstOrDefault(c => c.name == "Debug") ?? categories.FirstOrDefault();
+            if (fallbackCategory == null)
             {
                 HUDIconTogglePlugin.Log.LogWarning("RewiredActionInjector: No categories found at all!");
                 return;
             }
-            HUDIconTogglePlugin.Log.LogInfo($"RewiredActionInjector: Selected category is '{debugCategory.name}' (id={debugCategory.id}).");
+
+            HUDIconTogglePlugin.Log.LogInfo($"RewiredActionInjector: Fallback category is '{fallbackCategory.name}' (id={fallbackCategory.id}).");
 
             int nextId = GetNextActionId(actions);
             HUDIconTogglePlugin.Log.LogInfo($"RewiredActionInjector: Determined nextActionId = {nextId}. Injecting pending actions...");
@@ -101,12 +103,28 @@ namespace HUDIconToggle
                     continue;
                 }
 
+                // Resolve target category from modAction.Category, fallback if missing.
+                var targetCategory = fallbackCategory;
+                if (!string.IsNullOrEmpty(modAction.Category))
+                {
+                    var resolved = categories.FirstOrDefault(c => c.name == modAction.Category);
+                    if (resolved != null)
+                    {
+                        targetCategory = resolved;
+                        HUDIconTogglePlugin.Log.LogInfo($"RewiredActionInjector: Resolved category '{modAction.Category}' for action '{modAction.Name}'.");
+                    }
+                    else
+                    {
+                        HUDIconTogglePlugin.Log.LogWarning($"RewiredActionInjector: Category '{modAction.Category}' not found; using fallback '{fallbackCategory.name}'.");
+                    }
+                }
+
                 var action = new InputAction();
                 SetField(action, "id", nextId++);
                 SetField(action, "name", modAction.Name);
                 SetField(action, "type", modAction.Type);
                 SetField(action, "descriptiveName", modAction.Name);
-                SetField(action, "categoryId", debugCategory.id);
+                SetField(action, "categoryId", targetCategory.id);
                 SetField(action, "_userAssignable", true);
 
                 actions.Add(action);
@@ -120,8 +138,8 @@ namespace HUDIconToggle
                     var addActionMethod = categoryMap.GetType().GetMethod("AddAction", new System.Type[] { typeof(int), typeof(int) });
                     if (addActionMethod != null)
                     {
-                        addActionMethod.Invoke(categoryMap, new object[] { debugCategory.id, action.id });
-                        HUDIconTogglePlugin.Log.LogInfo($"RewiredActionInjector: Mapped '{modAction.Name}' (ID={action.id}) to category (ID={debugCategory.id}) in categoryMap.");
+                        addActionMethod.Invoke(categoryMap, new object[] { targetCategory.id, action.id });
+                        HUDIconTogglePlugin.Log.LogInfo($"RewiredActionInjector: Mapped '{modAction.Name}' (ID={action.id}) to category (ID={targetCategory.id}) in categoryMap.");
                     }
                     else
                     {

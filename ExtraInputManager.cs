@@ -10,12 +10,14 @@ namespace HUDIconToggle
     {
         public string Name { get; set; }
         public Rewired.InputActionType Type { get; set; }
+        public string Category { get; set; }
         public int AssignedId { get; set; }
 
-        public ModInputAction(string name, Rewired.InputActionType type)
+        public ModInputAction(string name, Rewired.InputActionType type, string category = null)
         {
             Name = name;
             Type = type;
+            Category = category;
             AssignedId = -1;
         }
     }
@@ -27,12 +29,12 @@ namespace HUDIconToggle
 
         private static string ConfigPath => Path.Combine(Path.GetDirectoryName(typeof(ExtraInputManager).Assembly.Location) ?? "", "ExtraInputActions.json");
 
-        public static void RegisterAction(string actionName, InputActionType type)
+        public static void RegisterAction(string actionName, InputActionType type, string category = null)
         {
             if (PendingActions.Exists(a => a.Name == actionName))
                 return;
 
-            PendingActions.Add(new ModInputAction(actionName, type));
+            PendingActions.Add(new ModInputAction(actionName, type, category));
             SavePendingActions();
         }
 
@@ -54,6 +56,7 @@ namespace HUDIconToggle
                     sb.AppendLine("  {");
                     sb.AppendLine($"    \"Name\": \"{act.Name}\",");
                     sb.AppendLine($"    \"Type\": {(int)act.Type},");
+                    sb.AppendLine($"    \"Category\": \"{act.Category ?? "null"}\",");
                     sb.AppendLine($"    \"AssignedId\": {act.AssignedId}");
                     sb.Append("  }");
                     if (i < PendingActions.Count - 1)
